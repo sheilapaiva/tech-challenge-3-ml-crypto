@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/postgres
+      ENABLE_SCHEDULER: "1"
+      INGEST_SYMBOLS: "BTCUSDT"
+      INGEST_INTERVAL: "1m"
+      INGEST_LIMIT: "200"
+      RETRAIN_CRON: "0 */1 * * *" 
+      DATA_DIR: /app/data
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - /home/sheilapaiva/tech-challenge-4-ml-crypto/api/models:/app/api/models
+      - /home/sheilapaiva/tech-challenge-4-ml-crypto/data:/app/data
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    environment:
+      API_BASE_URL: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+
+volumes:
+  pgdata:
